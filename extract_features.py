@@ -178,29 +178,28 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Extracting features for downstream tasks')
     parser.add_argument('--batch_size_per_gpu', default=100, type=int, help='Per-GPU batch-size')
     
-    parser.add_argument('--pretrained_weights', default='/mnt/data04/shared/skapse/Miccai/Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536_old/checkpoint0099.pth', type=str, help="Path to pretrained weights to evaluate.")
+    parser.add_argument('--pretrained_weights', default='.../Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536/checkpoint0099.pth', type=str, help="Path to pretrained weights to evaluate.")
     
     parser.add_argument('--use_cuda', default=True, type=utils.bool_flag,
         help="Should we store the features on GPU? We recommend setting this to False if you encounter OOM")
     
-    parser.add_argument('--arch', default='cd_small_cam', type=str, help='Architecture')
+    parser.add_argument('--arch', default='vit_small', type=str, help='Architecture')
     
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument("--checkpoint_key", default="teacher", type=str,
         help='Key to use in the checkpoint (example: "teacher")')
     
-    parser.add_argument('--dump_features', default='/mnt/data04/shared/skapse/Miccai/Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536_old/cls_token_features_ep99_no_normalize',
+    parser.add_argument('--dump_features', default='.../Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536/cls_token_features_ep99',
         help='Path where to save computed features, empty for no saving')
     
     
     parser.add_argument('--num_workers', default=10, type=int, help='Number of data loading workers per GPU.')
-    parser.add_argument("--dist_url", default='tcp://localhost:10012', type=str, help="""url used to set up
+    parser.add_argument("--dist_url", default='tcp://localhost:10002', type=str, help="""url used to set up
         distributed training; see https://pytorch.org/docs/stable/distributed.html""")
     parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")
 
-    # parser.add_argument('--data_path', default='/mnt/data09/shared/skapse/Lung_cancer/train_test_split', type=str)
 
-    parser.add_argument('--data_path', default='/mnt/data04/shared/skapse/Miccai/Datasets/Lung_cancer/train_test_split', type=str)
+    parser.add_argument('--data_path', default='.../Datasets/Lung_cancer/train_test_split', type=str)
     
     args = parser.parse_args()
 

@@ -159,9 +159,7 @@ def get_args_parser():
     
     # Misc
 
-    # parser.add_argument('--data_path', default='/mnt/data09/shared/skapse/Lung_cancer/train_test_split/train_20x_list_filtered_25.pickle', type=str)
-
-    parser.add_argument('--data_path', default='/mnt/data04/shared/skapse/Miccai/Datasets/Lung_cancer/train_test_split/train_5x_list.pickle', type=str)
+    parser.add_argument('--data_path', default='.../Datasets/Lung_cancer/train_test_split/train_5x_list.pickle', type=str)
 
 
     parser.add_argument('--output_dir', default=".../DINO_5X/vit_small_fp16true_momentum996_outdim65536_ep100", type=str, help='Path to save logs and checkpoints.')
@@ -173,7 +171,7 @@ def get_args_parser():
     
     parser.add_argument('--num_workers', default=10, type=int, help='Number of data loading workers per GPU.')
     
-    parser.add_argument("--dist_url", default='tcp://localhost:10038', type=str, help="""url used to set up
+    parser.add_argument("--dist_url", default='tcp://localhost:10001', type=str, help="""url used to set up
         distributed training; see https://pytorch.org/docs/stable/distributed.html""")
     
     parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")
@@ -181,9 +179,7 @@ def get_args_parser():
 
     return parser
 
-# 2.908059
-# --dist-url 'tcp://localhost:10001'
-# --dist-url 'tcp://localhost:10002'
+
 def train_dino(args):
     utils.init_distributed_mode(args)
     utils.fix_random_seeds(args.seed)

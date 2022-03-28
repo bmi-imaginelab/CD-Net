@@ -27,7 +27,6 @@ from matplotlib.patches import Polygon
 import torch
 import torch.nn as nn
 import torchvision
-import cd_multiresolution
 
 from torchvision import transforms as pth_transforms
 import numpy as np
@@ -105,28 +104,20 @@ if __name__ == '__main__':
     parser.add_argument('--arch', default='vit_small', type=str,
         choices=['vit_tiny', 'vit_small', 'vit_base'], help='Architecture (support only ViT atm).')
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
-    parser.add_argument('--pretrained_weights', default='/mnt/data04/shared/skapse/Miccai/Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536_old/checkpoint0099.pth', type=str,
+    parser.add_argument('--pretrained_weights', default='.../Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536/checkpoint0099.pth', type=str,
         help="Path to pretrained weights to load.")
-    
-#     parser.add_argument('--pretrained_weights', default='/mnt/data04/shared/skapse/Miccai/Experiments/Lung_cancer/DINO_5X/cd_vit_small_fp16true_momentum996_outdim65536_album/checkpoint.pth', type=str,
-#         help="Path to pretrained weights to load.")
-    
-        # parser.add_argument('--pretrained_weights', default='/mnt/data04/shared/skapse/Miccai/Experiments/Lung_cancer/DINO_5X/tnt_small_fp16true_momentum996_outdim65536/checkpoint.pth', type=str,
-        # help="Path to pretrained weights to load.")
-    
+
     parser.add_argument("--checkpoint_key", default="teacher", type=str,
         help='Key to use in the checkpoint (example: "teacher")')
     
-    parser.add_argument("--image_path", default='/mnt/data04/shared/skapse/Miccai/Datasets/Lung_cancer/LUSC/pyramid/TCGA-85-8352-01Z-00-DX1/14_7840_3360.png', type=str, help="Path of the image to load.")
+    parser.add_argument("--image_path", default='.../Datasets/Lung_cancer/LUSC/pyramid/TCGA-85-8352-01Z-00-DX1/14_7840_3360.png', type=str, help="Path of the image to load.")
     parser.add_argument("--image_size", default=(224, 224), type=int, nargs="+", help="Resize image.")
     
-    parser.add_argument('--output_dir', default='/mnt/data04/shared/skapse/Miccai/Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536_old/MIL_experiment/DSMIL/ep100_no_normalize_visualization', help='Path where to save visualizations.')
+    parser.add_argument('--output_dir', default='.../Experiments/Lung_cancer/DINO_5X/vit_small_fp16true_momentum996_outdim65536/MIL_experiment/DSMIL/ep100', help='Path where to save visualizations.')
     
     parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
         obtained by thresholding the self-attention maps to keep xx% of the mass.""")
     
-    parser.add_argument("--magnification", default=4, type=int, help="Magnification.")
-    parser.add_argument("--multiresolution", default=False, type=int, help="Multiresolution.")
     
     args = parser.parse_args()
 
@@ -135,9 +126,8 @@ if __name__ == '__main__':
     try:
         model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
     except:
-        print('Multi')
-        model = cd_multiresolution.__dict__[args.arch](patch_size=args.patch_size, magnification=args.magnification, num_classes=0)
-        
+        print('Not found')
+
         
     for p in model.parameters():
         p.requires_grad = False
@@ -182,68 +172,33 @@ if __name__ == '__main__':
         img = Image.open(BytesIO(response.content))
         img = img.convert('RGB')
     elif os.path.isfile(args.image_path):
-        
-        if args.multiresolution == True:
-        
-            temp_path = args.image_path[:-4] + '/' + 'wsi_crop_20x.png'
 
-            img_high = cv2.cvtColor(
-                cv2.imread(temp_path)[:,:,:3], cv2.COLOR_BGR2RGB).astype(np.float32)/255.0   # albumentations
-            
-        else:
-            img = cv2.cvtColor(
-                cv2.imread(args.image_path)[:,:,:3], cv2.COLOR_BGR2RGB).astype(np.float32)/255.0   # albumentations
+        img = cv2.cvtColor(
+            cv2.imread(args.image_path)[:,:,:3], cv2.COLOR_BGR2RGB).astype(np.float32)/255.0   # albumentations
 
-        # with open(args.image_path, 'rb') as f:
-        #     img = Image.open(f)
-        #     img = img.convert('RGB')
     else:
         print(f"Provided image path {args.image_path} is non valid.")
         sys.exit(1)
-    # transform = pth_transforms.Compose([
-    #     pth_transforms.ToTensor(),
-    # ])
-    
     
     transform =albumentations.Compose(
             [
-                # albumentations.Resize(512, 512),  
                 ToTensorV2()
             ],
         )
 
-    if args.multiresolution == True:
+    img = transform(image=img)['image']
 
-        cd_transform = albumentations.Compose([
-            albumentations.Resize(224, 224),                            
-        ])
-
-        img = cd_transform(image = img_high)['image']
-        
-        img = transform(image=img)['image']
-        img_high = transform(image=img_high)['image']
-        
-    else:
-
-        img = transform(image=img)['image']
-
-
-    
     # make the image divisible by the patch size
     
     w, h = img.shape[1] - img.shape[1] % args.patch_size, img.shape[2] - img.shape[2] % args.patch_size
     img = img[:, :w, :h].unsqueeze(0)
 
-    if args.multiresolution == True:
-        img_high = img_high.unsqueeze(0)
-    
+
     w_featmap = img.shape[-2] // args.patch_size
     h_featmap = img.shape[-1] // args.patch_size
 
-    if args.multiresolution == True:
-        attentions = model.get_last_selfattention(img.to(device),img_high.to(device))
-    else:
-        attentions = model.get_last_selfattention(img.to(device))
+
+    attentions = model.get_last_selfattention(img.to(device))
 
     nh = attentions.shape[1] # number of head
 
@@ -269,10 +224,10 @@ if __name__ == '__main__':
     # save attentions heatmaps
     os.makedirs(args.output_dir, exist_ok=True)
     torchvision.utils.save_image(torchvision.utils.make_grid(img, normalize=True, scale_each=True), os.path.join(args.output_dir, "img.png"))
-    # for j in range(nh):
-    #     fname = os.path.join(args.output_dir, "attn-head" + str(j) + ".png")
-    #     plt.imsave(fname=fname, arr=attentions[j], format='png')
-    #     print(f"{fname} saved.")
+    for j in range(nh):
+        fname = os.path.join(args.output_dir, "attn-head" + str(j) + ".png")
+        plt.imsave(fname=fname, arr=attentions[j], format='png')
+        print(f"{fname} saved.")
         
     attentions_mean = attentions.mean(0)
     fname = os.path.join(args.output_dir, "attn-head" + '_mean' + ".png")
